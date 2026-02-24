@@ -1,38 +1,54 @@
 #include "raylib.h"
+#include <stdlib.h>
 
-int main(void)
-{
-    InitWindow(800, 600, "force-fields");
+#define GRID_COLS 20
+#define GRID_ROWS 15
+#define CELL_SIZE 40
+#define PADDING 40
+
+void draw_grid(Color (*grid)[GRID_COLS]);
+
+int main(void) {
+
+    InitWindow(PADDING * 2 + GRID_COLS * CELL_SIZE,
+               PADDING * 2 + GRID_ROWS * CELL_SIZE, "force-fields");
     SetTargetFPS(60);
+
+    Color grid[GRID_ROWS][GRID_COLS];
+    for (int r = 0; r < GRID_ROWS; r++) {
+        for (int c = 0; c < GRID_COLS; c++) {
+            grid[r][c] = RAYWHITE;
+        }
+    }
 
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
-        // Filled + outlined rectangle
-        DrawRectangle(50, 50, 200, 120, BLUE);
-        DrawRectangleLines(50, 50, 200, 120, DARKBLUE);
+        for (int r = 0; r < GRID_ROWS; r++) {
+            for (int c = 0; c < GRID_COLS; c++) {
+                grid[r][c] =
+                    (Color){rand() % 256, rand() % 256, rand() % 256, 255};
+            }
+        }
 
-        // Circle
-        DrawCircle(500, 200, 80, RED);
-
-        // Line
-        DrawLine(100, 400, 700, 350, DARKGREEN);
-
-        // Triangle
-        DrawTriangle(
-            (Vector2){400, 400},
-            (Vector2){350, 520},
-            (Vector2){450, 520},
-            ORANGE
-        );
-
-        // FPS counter in top-right
+        draw_grid(grid);
         DrawFPS(730, 10);
-
         EndDrawing();
     }
 
     CloseWindow();
     return 0;
+}
+
+void draw_grid(Color (*grid)[GRID_COLS]) {
+    for (int r = 0; r < GRID_ROWS; r++) {
+        for (int c = 0; c < GRID_COLS; c++) {
+            int x = c * CELL_SIZE + PADDING;
+            int y = r * CELL_SIZE + PADDING;
+
+            DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, grid[r][c]);
+            DrawRectangleLines(x, y, CELL_SIZE, CELL_SIZE, LIGHTGRAY);
+        }
+    }
 }
