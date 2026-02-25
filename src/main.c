@@ -3,18 +3,37 @@
 #include <math.h>
 #include <stdlib.h>
 
-#define GRID_COLS 20
-#define GRID_ROWS 15
-#define CELL_SIZE 40
+#define GRID_COLS 50
+#define GRID_ROWS 50
+#define CELL_SIZE 30
 #define PADDING 40
 
 Vector2 field_uniform(float x, float y);
+Vector2 field_radial(float x, float y);
+Vector2 field_vortex(float x, float y);
+Vector2 field_spiral(float x, float y);
+Vector2 field_saddle(float x, float y);
+
 void draw_grid(Vector2 (*field)[GRID_COLS]);
 void draw_arrow(Vector2 center, Vector2 dir, float max_len, Color color);
 float field_max_magnitude(Vector2 (*field)[GRID_COLS]);
 
 typedef Vector2 (*FieldFunc)(float x, float y);
 
+typedef enum {
+    FIELD_UNIFORM,
+    FIELD_RADIAL,
+    FIELD_VORTEX,
+    FIELD_SPIRAL,
+    FIELD_SADDLE,
+    FIELD_COUNT,
+} FieldType;
+
+FieldFunc field_funcs[FIELD_COUNT] = {field_uniform, field_radial, field_vortex,
+                                      field_spiral, field_saddle};
+
+const char *field_names[FIELD_COUNT] = {"Uniform", "Radial", "Vortex", "Spiral",
+                                        "Saddle"};
 int main(void) {
 
     InitWindow(PADDING * 2 + GRID_COLS * CELL_SIZE,
@@ -23,22 +42,29 @@ int main(void) {
 
     Vector2 field[GRID_ROWS][GRID_COLS] = {0};
 
-    FieldFunc current_field = field_uniform;
-
-    for (int r = 0; r < GRID_ROWS; r++) {
-        for (int c = 0; c < GRID_COLS; c++) {
-            float x = (float)c / GRID_COLS * 2.0f - 1.0f;
-            float y = (float)r / GRID_ROWS * 2.0f - 1.0f;
-            field[r][c] = current_field(x, y);
-        }
-    }
+    // FieldFunc current_field = field_uniform;
+    FieldType current_type = FIELD_RADIAL;
 
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
+        if (IsKeyPressed(KEY_SPACE)) {
+            current_type = (current_type + 1) % FIELD_COUNT;
+        }
+
         draw_grid(field);
-        DrawFPS(730, 10);
+        for (int r = 0; r < GRID_ROWS; r++) {
+            for (int c = 0; c < GRID_COLS; c++) {
+                float x = (float)c / GRID_COLS * 2.0f - 1.0f;
+                float y = (float)r / GRID_ROWS * 2.0f - 1.0f;
+                field[r][c] = field_funcs[current_type](x, y);
+            }
+        }
+        DrawText(field_names[current_type], PADDING, 10, 20, DARKGRAY);
+        
+
+        DrawFPS(PADDING * 2 + GRID_COLS * CELL_SIZE - PADDING - CELL_SIZE * 4, PADDING/2);
         EndDrawing();
     }
 
@@ -66,13 +92,6 @@ void draw_grid(Vector2 (*field)[GRID_COLS]) {
     }
 }
 
-Vector2 field_uniform(float x, float y) {
-    (void)x;
-    (void)y;
-
-    return (Vector2){1.0f, 0.5f};
-}
-
 void draw_arrow(Vector2 center, Vector2 dir, float max_len, Color color) {
     float mag = Vector2Length(dir);
 
@@ -87,7 +106,7 @@ void draw_arrow(Vector2 center, Vector2 dir, float max_len, Color color) {
     Vector2 tail = Vector2Add(center, Vector2Scale(norm, -len * 0.5f));
 
     DrawLineEx(tail, tip, 2.0f, color);
-    
+
     // Arrow head
     float head_len = len * 0.3f;
     float head_half = len * 0.15f;
@@ -114,3 +133,17 @@ float field_max_magnitude(Vector2 (*field)[GRID_COLS]) {
     return max_mag;
 }
 
+Vector2 field_uniform(float x, float y) {
+    (void)x;
+    (void)y;
+
+    return (Vector2){1.0f, 0.5f};
+}
+
+Vector2 field_radial(float x, float y) { return (Vector2){x, y}; }
+
+Vector2 field_vortex(float x, float y) { return (Vector2){-y, x}; }
+
+Vector2 field_spiral(float x, float y) { return (Vector2){x - y, y + x}; }
+
+Vector2 field_saddle(float x, float y) { return (Vector2){x, -y}; }
