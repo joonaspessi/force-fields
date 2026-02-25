@@ -113,3 +113,4 @@ float field_max_magnitude(Vector2 (*field)[GRID_COLS]) {
     }
     return max_mag;
 }
+
