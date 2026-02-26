@@ -41,8 +41,6 @@ int main(void) {
     SetTargetFPS(60);
 
     Vector2 field[GRID_ROWS][GRID_COLS] = {0};
-
-    // FieldFunc current_field = field_uniform;
     FieldType current_type = FIELD_RADIAL;
 
     while (!WindowShouldClose()) {
@@ -53,7 +51,6 @@ int main(void) {
             current_type = (current_type + 1) % FIELD_COUNT;
         }
 
-        draw_grid(field);
         for (int r = 0; r < GRID_ROWS; r++) {
             for (int c = 0; c < GRID_COLS; c++) {
                 float x = (float)c / GRID_COLS * 2.0f - 1.0f;
@@ -61,10 +58,11 @@ int main(void) {
                 field[r][c] = field_funcs[current_type](x, y);
             }
         }
-        DrawText(field_names[current_type], PADDING, 10, 20, DARKGRAY);
-        
 
-        DrawFPS(PADDING * 2 + GRID_COLS * CELL_SIZE - PADDING - CELL_SIZE * 4, PADDING/2);
+        draw_grid(field);
+        DrawText(field_names[current_type], PADDING, 10, 20, DARKGRAY);
+        DrawFPS(PADDING * 2 + GRID_COLS * CELL_SIZE - PADDING - CELL_SIZE * 4,
+                PADDING / 2);
         EndDrawing();
     }
 
@@ -81,13 +79,18 @@ void draw_grid(Vector2 (*field)[GRID_COLS]) {
         for (int c = 0; c < GRID_COLS; c++) {
             int x = c * CELL_SIZE + PADDING;
             int y = r * CELL_SIZE + PADDING;
-
             DrawRectangleLines(x, y, CELL_SIZE, CELL_SIZE, LIGHTGRAY);
+
+            Vector2 v = field[r][c];
+            float mag = Vector2Length(v);
+            float t = mag / max_mag;
+
+            // hsv: hue 240 (blue) -> 0 (red), full saturation, full value
+            Color color = ColorFromHSV(240.0f * (1.0f - t), 0.9f, 0.9f);
 
             Vector2 center = {x + CELL_SIZE / 2.0f, y + CELL_SIZE / 2.0f};
             Vector2 scaled = Vector2Scale(field[r][c], 1.0f / max_mag);
-
-            draw_arrow(center, scaled, CELL_SIZE - 4, DARKGRAY);
+            draw_arrow(center, scaled, CELL_SIZE - 4, color);
         }
     }
 }
@@ -125,7 +128,7 @@ float field_max_magnitude(Vector2 (*field)[GRID_COLS]) {
     for (int r = 0; r < GRID_ROWS; r++) {
         for (int c = 0; c < GRID_COLS; c++) {
             float mag = Vector2Length(field[r][c]);
-            if (mag < max_mag) {
+            if (mag > max_mag) {
                 max_mag = mag;
             }
         }
@@ -141,9 +144,6 @@ Vector2 field_uniform(float x, float y) {
 }
 
 Vector2 field_radial(float x, float y) { return (Vector2){x, y}; }
-
 Vector2 field_vortex(float x, float y) { return (Vector2){-y, x}; }
-
 Vector2 field_spiral(float x, float y) { return (Vector2){x - y, y + x}; }
-
 Vector2 field_saddle(float x, float y) { return (Vector2){x, -y}; }
