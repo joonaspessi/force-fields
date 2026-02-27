@@ -10,13 +10,7 @@
 #define CELL_SIZE 20
 #define PADDING 40
 
-// PARTICLES
-#define MAX_PARTICLE 4096
-#define PARTICLE_SPEED 150.0f
-#define PARTICLE_LIFE 3.0f
-#define SPAWN_RATE 20
-
-// Vector field functions
+// VECTOR FIELDS
 Vector2 field_uniform(float x, float y);
 Vector2 field_radial(float x, float y);
 Vector2 field_vortex(float x, float y);
@@ -42,15 +36,23 @@ Vector2 screen_to_norm(Vector2 pos) {
     return (Vector2){nx, ny};
 }
 
+void draw_grid(Vector2 (*field)[GRID_COLS]);
+void draw_arrow(Vector2 center, Vector2 dir, float max_len, Color color);
+
+// PARTICLES
+#define MAX_PARTICLES 100
+#define PARTICLE_SPEED 150.0f
+#define PARTICLE_LIFE 300.0f
+#define SPAWN_RATE 20
 typedef struct {
     Vector2 pos;
     float age;
     float life;
     bool active;
 } Particle;
-
-void draw_grid(Vector2 (*field)[GRID_COLS]);
-void draw_arrow(Vector2 center, Vector2 dir, float max_len, Color color);
+void spawn_particle(Particle particles[], Vector2 pos, float life);
+void draw_particles(Particle particles[]);
+void update_particles(Particle particles[], FieldType type, float dt);
 
 int main(void) {
 
@@ -60,9 +62,10 @@ int main(void) {
 
     Vector2 field[GRID_ROWS][GRID_COLS] = {0};
     FieldType current_type = FIELD_RADIAL;
-    Particle particles[MAX_PARTICLE] = {0};
+    Particle particles[MAX_PARTICLES] = {0};
 
     while (!WindowShouldClose()) {
+        float dt = GetFrameTime();
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
@@ -78,7 +81,20 @@ int main(void) {
             }
         }
 
+        // PARTICLES
+        for (int i = 0; i < SPAWN_RATE; i++) {
+            float px =
+                PADDING + (float)rand() / RAND_MAX * GRID_COLS * CELL_SIZE;
+            float py =
+                PADDING + (float)rand() / RAND_MAX * GRID_ROWS * CELL_SIZE;
+            spawn_particle(particles, (Vector2){px, py}, PARTICLE_LIFE);
+        }
+
+        // AGE PARTICLES
+        update_particles(particles, current_type, dt);
+
         draw_grid(field);
+        draw_particles(particles);
         DrawText(field_names[current_type], PADDING, 10, 20, DARKGRAY);
         DrawFPS(PADDING * 2 + GRID_COLS * CELL_SIZE - PADDING - CELL_SIZE * 4,
                 PADDING / 2);
@@ -166,3 +182,54 @@ Vector2 field_radial(float x, float y) { return (Vector2){x, y}; }
 Vector2 field_vortex(float x, float y) { return (Vector2){-y, x}; }
 Vector2 field_spiral(float x, float y) { return (Vector2){x - y, y + x}; }
 Vector2 field_saddle(float x, float y) { return (Vector2){x, -y}; }
+
+void spawn_particle(Particle particles[], Vector2 pos, float life) {
+    for (int i = 0; i < MAX_PARTICLES; i++) {
+        if (!particles[i].active) {
+            particles[i].pos = pos;
+            particles[i].age = 0.0f;
+            particles[i].life = life;
+            particles[i].active = true;
+            return;
+        }
+    }
+}
+
+void draw_particles(Particle particles[]) {
+    for (int i = 0; i < MAX_PARTICLES; i++) {
+        if (!particles[i].active)
+            continue;
+        float t = particles[i].age / particles[i].life;
+        unsigned char alpha = (unsigned char)(255.0f * (1.0f - t));
+        Color color = {50, 120, 220, alpha};
+        DrawCircleV(particles[i].pos, 3.0f, color);
+    }
+}
+
+void update_particles(Particle particles[], FieldType type, float dt) {
+    float x_min = PADDING;
+    float x_max = PADDING + GRID_COLS * CELL_SIZE;
+    float y_min = PADDING;
+    float y_max = PADDING + GRID_ROWS * CELL_SIZE;
+
+    for (int i = 0; i < MAX_PARTICLES; ++i) {
+        if (!particles[i].active)
+            continue;
+
+        particles[i].age += dt;
+        if (particles[i].age >= particles[i].life) {
+            particles[i].active = false;
+            continue;
+        }
+
+        Vector2 n = screen_to_norm(particles[i].pos);
+        Vector2 force = field_funcs[type](n.x, n.y);
+        particles[i].pos.x += force.x * PARTICLE_SPEED * dt;
+        particles[i].pos.y += force.y * PARTICLE_SPEED * dt;
+
+        if (particles[i].pos.x < x_min || particles[i].pos.x > x_max ||
+            particles[i].pos.y < y_min || particles[i].pos.y > y_max) {
+            particles[i].active = false;
+        }
+    }
+}
