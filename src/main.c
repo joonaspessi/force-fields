@@ -1,25 +1,29 @@
 #include "raylib.h"
 #include "raymath.h"
 #include <math.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
+// GRID
 #define GRID_COLS 50
 #define GRID_ROWS 50
-#define CELL_SIZE 30
+#define CELL_SIZE 20
 #define PADDING 40
 
+// PARTICLES
+#define MAX_PARTICLE 4096
+#define PARTICLE_SPEED 150.0f
+#define PARTICLE_LIFE 3.0f
+#define SPAWN_RATE 20
+
+// Vector field functions
 Vector2 field_uniform(float x, float y);
 Vector2 field_radial(float x, float y);
 Vector2 field_vortex(float x, float y);
 Vector2 field_spiral(float x, float y);
 Vector2 field_saddle(float x, float y);
-
-void draw_grid(Vector2 (*field)[GRID_COLS]);
-void draw_arrow(Vector2 center, Vector2 dir, float max_len, Color color);
 float field_max_magnitude(Vector2 (*field)[GRID_COLS]);
-
 typedef Vector2 (*FieldFunc)(float x, float y);
-
 typedef enum {
     FIELD_UNIFORM,
     FIELD_RADIAL,
@@ -28,12 +32,26 @@ typedef enum {
     FIELD_SADDLE,
     FIELD_COUNT,
 } FieldType;
-
 FieldFunc field_funcs[FIELD_COUNT] = {field_uniform, field_radial, field_vortex,
                                       field_spiral, field_saddle};
-
 const char *field_names[FIELD_COUNT] = {"Uniform", "Radial", "Vortex", "Spiral",
                                         "Saddle"};
+Vector2 screen_to_norm(Vector2 pos) {
+    float nx = (pos.x - PADDING) / (GRID_COLS * CELL_SIZE) * 2.0f - 1.0f;
+    float ny = (pos.y - PADDING) / (GRID_ROWS * CELL_SIZE) * 2.0f - 1.0f;
+    return (Vector2){nx, ny};
+}
+
+typedef struct {
+    Vector2 pos;
+    float age;
+    float life;
+    bool active;
+} Particle;
+
+void draw_grid(Vector2 (*field)[GRID_COLS]);
+void draw_arrow(Vector2 center, Vector2 dir, float max_len, Color color);
+
 int main(void) {
 
     InitWindow(PADDING * 2 + GRID_COLS * CELL_SIZE,
@@ -42,6 +60,7 @@ int main(void) {
 
     Vector2 field[GRID_ROWS][GRID_COLS] = {0};
     FieldType current_type = FIELD_RADIAL;
+    Particle particles[MAX_PARTICLE] = {0};
 
     while (!WindowShouldClose()) {
         BeginDrawing();
