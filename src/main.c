@@ -40,10 +40,10 @@ void draw_grid(Vector2 (*field)[GRID_COLS]);
 void draw_arrow(Vector2 center, Vector2 dir, float max_len, Color color);
 
 // PARTICLES
-#define MAX_PARTICLES 100
+#define MAX_PARTICLES 500
 #define PARTICLE_SPEED 150.0f
 #define PARTICLE_LIFE 300.0f
-#define SPAWN_RATE 20
+#define SPAWN_RATE 1
 typedef struct {
     Vector2 pos;
     float age;
@@ -64,14 +64,30 @@ int main(void) {
     FieldType current_type = FIELD_RADIAL;
     Particle particles[MAX_PARTICLES] = {0};
 
+    bool show_grid = true;
+    bool show_particles = true;
+
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
+        FieldType prev_type = current_type;
+
         if (IsKeyPressed(KEY_SPACE)) {
             current_type = (current_type + 1) % FIELD_COUNT;
         }
+
+        if (current_type != prev_type) {
+            for (int i = 0; i < MAX_PARTICLES; i++) {
+                particles[i].active = false;
+            }
+        }
+
+        if (IsKeyPressed(KEY_G))
+            show_grid = !show_grid;
+        if (IsKeyPressed(KEY_P))
+            show_particles = !show_particles;
 
         for (int r = 0; r < GRID_ROWS; r++) {
             for (int c = 0; c < GRID_COLS; c++) {
@@ -82,20 +98,36 @@ int main(void) {
         }
 
         // PARTICLES
-        for (int i = 0; i < SPAWN_RATE; i++) {
-            float px =
-                PADDING + (float)rand() / RAND_MAX * GRID_COLS * CELL_SIZE;
-            float py =
-                PADDING + (float)rand() / RAND_MAX * GRID_ROWS * CELL_SIZE;
-            spawn_particle(particles, (Vector2){px, py}, PARTICLE_LIFE);
+        if (show_particles) {
+            for (int i = 0; i < SPAWN_RATE; i++) {
+                float px =
+                    PADDING + (float)rand() / RAND_MAX * GRID_COLS * CELL_SIZE;
+                float py =
+                    PADDING + (float)rand() / RAND_MAX * GRID_ROWS * CELL_SIZE;
+                spawn_particle(particles, (Vector2){px, py}, PARTICLE_LIFE);
+            }
+
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+                Vector2 mouse = GetMousePosition();
+                for (int i = 0; i < 10; i++) {
+                    float jx =
+                        mouse.x + ((float)rand() / RAND_MAX - 0.5f) * 20.0f;
+                    float jy =
+                        mouse.y + ((float)rand() / RAND_MAX - 0.5f) * 20.0f;
+                    spawn_particle(particles, (Vector2){jx, jy}, PARTICLE_LIFE);
+                }
+            }
+
+            // AGE PARTICLES
+            update_particles(particles, current_type, dt);
         }
-
-        // AGE PARTICLES
-        update_particles(particles, current_type, dt);
-
-        draw_grid(field);
-        draw_particles(particles);
-        DrawText(field_names[current_type], PADDING, 10, 20, DARKGRAY);
+        if (show_grid)
+            draw_grid(field);
+        if (show_particles)
+            draw_particles(particles);
+        DrawText(TextFormat("%s | SPACE: cycle | G: grid | P: particles",
+                            field_names[current_type]),
+                 PADDING, 10, 20, DARKGRAY);
         DrawFPS(PADDING * 2 + GRID_COLS * CELL_SIZE - PADDING - CELL_SIZE * 4,
                 PADDING / 2);
         EndDrawing();
