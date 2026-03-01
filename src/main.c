@@ -44,6 +44,8 @@ void draw_arrow(Vector2 center, Vector2 dir, float max_len, Color color);
 #define PARTICLE_SPEED 150.0f
 #define PARTICLE_LIFE 300.0f
 #define SPAWN_RATE 1
+#define MOUSE_SPAWN_INTERVAL 0.5f
+
 typedef struct {
     Vector2 pos;
     float age;
@@ -66,6 +68,7 @@ int main(void) {
 
     bool show_grid = true;
     bool show_particles = true;
+    float mouse_spawn_timer = 0.0f;
 
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
@@ -108,14 +111,21 @@ int main(void) {
             }
 
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-                Vector2 mouse = GetMousePosition();
-                for (int i = 0; i < 10; i++) {
-                    float jx =
-                        mouse.x + ((float)rand() / RAND_MAX - 0.5f) * 20.0f;
-                    float jy =
-                        mouse.y + ((float)rand() / RAND_MAX - 0.5f) * 20.0f;
-                    spawn_particle(particles, (Vector2){jx, jy}, PARTICLE_LIFE);
+                mouse_spawn_timer += dt;
+                if (mouse_spawn_timer >= MOUSE_SPAWN_INTERVAL) {
+                    mouse_spawn_timer = 0.0f;
+                    Vector2 mouse = GetMousePosition();
+                    for (int i = 0; i < 10; i++) {
+                        float jx =
+                            mouse.x + ((float)rand() / RAND_MAX - 0.5f) * 20.0f;
+                        float jy =
+                            mouse.y + ((float)rand() / RAND_MAX - 0.5f) * 20.0f;
+                        spawn_particle(particles, (Vector2){jx, jy},
+                                       PARTICLE_LIFE);
+                    }
                 }
+            } else {
+                mouse_spawn_timer = 0.0f;
             }
 
             // AGE PARTICLES
