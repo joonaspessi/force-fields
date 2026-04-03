@@ -5,8 +5,8 @@
 #include <stdlib.h>
 
 // GRID
-#define GRID_COLS 50
-#define GRID_ROWS 50
+#define GRID_COLS 60
+#define GRID_ROWS 60
 #define CELL_SIZE 20
 #define PADDING 40
 
