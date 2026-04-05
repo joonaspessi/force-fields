@@ -40,7 +40,7 @@ void draw_grid(Vector2 (*field)[GRID_COLS]);
 void draw_arrow(Vector2 center, Vector2 dir, float max_len, Color color);
 
 // PARTICLES
-#define MAX_PARTICLES 500
+#define MAX_PARTICLES 7 00
 #define PARTICLE_SPEED 150.0f
 #define PARTICLE_LIFE 300.0f
 #define SPAWN_RATE 1
