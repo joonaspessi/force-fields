@@ -8,7 +8,7 @@
 #define GRID_COLS 60
 #define GRID_ROWS 60
 #define CELL_SIZE 20
-#define PADDING 40
+#define PADDING 30
 
 // VECTOR FIELDS
 Vector2 field_uniform(float x, float y);
